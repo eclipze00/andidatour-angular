@@ -1,12 +1,10 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
-  templateUrl: './app.html',
-  styleUrl: './app.scss'
+  standalone: true,
+  imports: [RouterOutlet],   // ← obrigatório
+  template: `<router-outlet />`  // ← só isso, sem nada mais
 })
-export class App {
-  protected readonly title = signal('andidatour-angular');
-}
+export class AppComponent {}
