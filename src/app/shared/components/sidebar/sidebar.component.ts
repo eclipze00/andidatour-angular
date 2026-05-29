@@ -51,6 +51,7 @@ export class SidebarComponent {
     { title: 'Dashboard', url: '/app/dashboard', icon: '⊞' },
     { title: 'Nova cotação', url: '/app/nova-cotacao', icon: '🔍' },
     { title: 'Histórico', url: '/app/historico', icon: '📋' },
+    { title: 'Solicitações', url: '/app/solicitacoes', icon: '📥' },
     { title: 'Propostas', url: '/app/propostas', icon: '📄' },
     { title: 'Clientes', url: '/app/clientes', icon: '👥' },
     { title: 'Alertas de preço', url: '/app/alertas', icon: '🔔' },

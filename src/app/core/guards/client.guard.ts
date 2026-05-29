@@ -3,13 +3,13 @@ import { CanActivateFn, Router } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
 import { AuthService } from '../services/auth.service';
 
-export const authGuard: CanActivateFn = () => {
+export const clientGuard: CanActivateFn = () => {
   const auth     = inject(AuthService);
   const router   = inject(Router);
   const platform = inject(PLATFORM_ID);
 
   if (!isPlatformBrowser(platform)) return true;
-  if (auth.isLoggedIn()) return true;
-  router.navigate(['/login']);
-  return false;
+  if (!auth.isLoggedIn()) { router.navigate(['/login']); return false; }
+  if (!auth.isClient)     { router.navigate(['/app/dashboard']); return false; }
+  return true;
 };

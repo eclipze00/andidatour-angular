@@ -81,10 +81,48 @@ import { ToastService } from '../../core/services/toast.service';
         <div class="space-y-3">
           <div><label class="text-sm font-medium">Nome</label><input [(ngModel)]="newClient.name" class="input-field" /></div>
           <div class="grid grid-cols-2 gap-3">
-            <div><label class="text-sm font-medium">E-mail</label><input [(ngModel)]="newClient.email" type="email" class="input-field" /></div>
-            <div><label class="text-sm font-medium">Telefone</label><input [(ngModel)]="newClient.phone" class="input-field" /></div>
+            <div>
+              <label class="text-sm font-medium">E-mail</label>
+
+              <input
+                [(ngModel)]="newClient.email"
+                (blur)="emailTouched = true"
+                type="email"
+                class="input-field"
+                placeholder="cliente@email.com"
+                [class.input-error]="emailTouched && !isValidEmail(newClient.email)"
+              />
+
+              <span
+                *ngIf="emailTouched && !isValidEmail(newClient.email)"
+                class="field-error"
+              >
+                Informe um e-mail válido.
+              </span>
+            </div>
+            <div>
+              <label class="text-sm font-medium">Telefone</label>
+              <input
+                [(ngModel)]="newClient.phone"
+                (ngModelChange)="newClient.phone = formatPhone($event)"
+                type="text"
+                class="input-field"
+                placeholder="(11) 99999-9999"
+                maxlength="15"
+              />
+            </div>
           </div>
-          <div><label class="text-sm font-medium">Documento</label><input [(ngModel)]="newClient.document" class="input-field" /></div>
+          <div>
+            <label class="text-sm font-medium">Documento</label>
+            <input
+              [(ngModel)]="newClient.document"
+              (ngModelChange)="newClient.document = formatDocument($event)"
+              type="text"
+              class="input-field"
+              placeholder="CPF ou CNPJ"
+              maxlength="18"
+            />
+          </div>
           <div><label class="text-sm font-medium">Preferências</label><input [(ngModel)]="newClient.preferences" class="input-field" /></div>
         </div>
         <div class="flex gap-2 pt-2">
@@ -96,7 +134,18 @@ import { ToastService } from '../../core/services/toast.service';
       </div>
     </div>
   `,
-  styles: [`.input-field { width:100%; border-radius:var(--radius); border:1px solid var(--border); padding:0.5rem 0.75rem; font-size:0.875rem; outline:none; margin-top:0.25rem; }`]
+  styles: [`.input-field { width:100%; border-radius:var(--radius); border:1px solid var(--border); padding:0.5rem 0.75rem; font-size:0.875rem; outline:none; margin-top:0.25rem; 
+    .input-error {
+    border-color: var(--destructive) !important;
+    box-shadow: 0 0 0 2px oklch(0.58 0.2 25 / 0.14) !important;
+  }
+
+  .field-error {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 0.75rem;
+    color: var(--destructive);
+  } }`]
 })
 export class ClientesComponent implements OnInit, OnDestroy {
   clients: Client[] = [];
@@ -105,6 +154,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
   loading = false;
   saving = false;
   private sub!: Subscription;
+  emailTouched = false;
 
   constructor(
     private clientService: ClientService, 
@@ -121,6 +171,14 @@ export class ClientesComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() { this.sub?.unsubscribe(); }
+
+  isValidEmail(email: string | undefined | null) {
+    const value = (email || '').trim();
+
+    if (!value) return false;
+
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
+  }
 
   // No loadClients(), adicione o cdr.detectChanges():
   loadClients() {
@@ -158,5 +216,73 @@ export class ClientesComponent implements OnInit, OnDestroy {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  onlyNumbers(value: string | undefined | null) {
+    return (value || '').replace(/\D/g, '');
+  }
+
+  formatPhone(value: string) {
+    const numbers = this.onlyNumbers(value).slice(0, 11);
+
+    if (numbers.length <= 2) {
+      return numbers;
+    }
+
+    if (numbers.length <= 6) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+    }
+
+    if (numbers.length <= 10) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`;
+    }
+
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
+  }
+
+  formatDocument(value: string) {
+    const numbers = this.onlyNumbers(value).slice(0, 14);
+
+    if (numbers.length <= 11) {
+      return this.formatCpf(numbers);
+    }
+
+    return this.formatCnpj(numbers);
+  }
+
+  formatCpf(numbers: string) {
+    if (numbers.length <= 3) {
+      return numbers;
+    }
+
+    if (numbers.length <= 6) {
+      return `${numbers.slice(0, 3)}.${numbers.slice(3)}`;
+    }
+
+    if (numbers.length <= 9) {
+      return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6)}`;
+    }
+
+    return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6, 9)}-${numbers.slice(9)}`;
+  }
+
+  formatCnpj(numbers: string) {
+    if (numbers.length <= 2) {
+      return numbers;
+    }
+
+    if (numbers.length <= 5) {
+      return `${numbers.slice(0, 2)}.${numbers.slice(2)}`;
+    }
+
+    if (numbers.length <= 8) {
+      return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5)}`;
+    }
+
+    if (numbers.length <= 12) {
+      return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8)}`;
+    }
+
+    return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8, 12)}-${numbers.slice(12)}`;
   }
 }

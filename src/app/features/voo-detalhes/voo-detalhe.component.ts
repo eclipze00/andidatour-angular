@@ -120,9 +120,18 @@ import { ToastService } from '../../core/services/toast.service';
             <!-- Seletor de cliente -->
             <div class="space-y-1.5">
               <label class="text-sm font-medium">Cliente para esta cotação</label>
-              <select [(ngModel)]="selectedClientId" class="input-field">
-                <option [value]="0">Selecione um cliente…</option>
-                <option *ngFor="let c of clients" [value]="c.id">{{ c.name }}</option>
+              <select
+                [(ngModel)]="selectedClientId"
+                class="input-field"
+                [disabled]="loadingClients"
+              >
+                <option [ngValue]="0">
+                  {{ loadingClients ? 'Carregando clientes...' : 'Selecione um cliente…' }}
+                </option>
+
+                <option *ngFor="let c of clients" [ngValue]="c.id">
+                  {{ c.name }}
+                </option>
               </select>
               <a routerLink="/app/clientes"
                  class="text-xs hover:underline" style="color:var(--brand)">
@@ -199,6 +208,7 @@ import { ToastService } from '../../core/services/toast.service';
 export class VooDetalheComponent implements OnInit {
   flight: FlightOption | undefined;
   clients: Client[] = [];
+  loadingClients = false;
   selectedClientId = 0;
   travelDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     .toISOString().split('T')[0]; // 30 dias a partir de hoje
@@ -224,33 +234,57 @@ export class VooDetalheComponent implements OnInit {
   ) {}
 
   ngOnInit() {
+    this.loadClients();
+
     const id = this.route.snapshot.paramMap.get('id') ?? '';
     const cabin = this.route.snapshot.queryParamMap.get('cabin') ?? 'economica';
 
-    // Tenta pegar do navigation state primeiro
     const stateFlight = history.state?.flight as FlightOption | undefined;
 
     if (stateFlight && stateFlight.id === id) {
       this.flight = stateFlight;
       this.rules[0].desc = stateFlight.baggage;
-      this.clientService.getAll().subscribe(c => this.clients = c);
+      this.cdr.detectChanges();
       return;
     }
 
-    // Fallback: busca pela API
     const parts = id.split('-');
     const from = parts[2] ?? 'GRU';
-    const to   = parts[3] ?? 'LIS';
+    const to = parts[3] ?? 'LIS';
 
     this.flightService.search(from, to, cabin).subscribe({
       next: flights => {
         this.flight = flights.find(f => f.id === id) ?? flights[0];
-        if (this.flight) this.rules[0].desc = this.flight.baggage;
-      },
-      error: err => console.error('Erro ao buscar voo:', err)
-    });
 
-    this.clientService.getAll().subscribe(c => this.clients = c);
+        if (this.flight) {
+          this.rules[0].desc = this.flight.baggage;
+        }
+
+        this.cdr.detectChanges();
+      },
+      error: err => {
+        console.error('Erro ao buscar voo:', err);
+        this.toast.error('Erro ao carregar detalhes do voo.');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  loadClients() {
+    this.loadingClients = true;
+
+    this.clientService.getAll().subscribe({
+      next: clients => {
+        this.clients = clients;
+        this.loadingClients = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.loadingClients = false;
+        this.toast.error('Erro ao carregar clientes.');
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   salvarCotacao() {
